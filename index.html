@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Typing - 極簡打字練習</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --error: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .stat-box {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        .stat-value {
+            color: var(--accent);
+            display: block;
+            font-size: 2rem;
+        }
+
+        #quote-display {
+            font-size: 1.8rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            min-height: 100px;
+            color: var(--text-muted);
+            text-align: left;
+            padding: 20px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+        }
+
+        .correct { color: var(--text-main); }
+        .incorrect { color: var(--error); text-decoration: underline; }
+
+        #input-field {
+            width: 100%;
+            padding: 1.2rem;
+            font-size: 1.5rem;
+            background-color: var(--card-bg);
+            border: 2px solid #334155;
+            border-radius: 12px;
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        /* 核心邏輯：背景顏色變換 */
+        #input-field.bg-success { background-color: rgba(34, 197, 94, 0.2); border-color: var(--success); }
+        #input-field.bg-error { background-color: rgba(239, 68, 68, 0.2); border-color: var(--error); }
+
+        .btn-restart {
+            margin-top: 2rem;
+            background: var(--accent);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        .btn-restart:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="stats-container">
+        <div class="stat-box">WPM <span id="wpm" class="stat-value">0</span></div>
+        <div class="stat-box">正確率 <span id="accuracy" class="stat-value">100%</span></div>
+    </div>
+
+    <div id="quote-display">載入中...</div>
+    
+    <input type="text" id="input-field" autofocus placeholder="在這裡開始打字...">
+    
+    <button class="btn-restart" onclick="resetGame()">更換句子 / 重新開始</button>
+</div>
+
+<script>
+    const quotes = [
+        "The quick brown fox jumps over the lazy dog.",
+        "Practice makes perfect when learning to code.",
+        "Deep learning is a subset of machine learning.",
+        "Stay hungry, stay foolish, and never stop dreaming.",
+        "Success is not final, failure is not fatal.",
+        "Life is what happens when you are making other plans.",
+        "The only way to do great work is to love what you do.",
+        "Innovation distinguishes between a leader and a follower."
+    ];
+
+    const quoteDisplay = document.getElementById('quote-display');
+    const inputField = document.getElementById('input-field');
+    const wpmDisplay = document.getElementById('wpm');
+    const accDisplay = document.getElementById('accuracy');
+
+    let startTime;
+    let timerStarted = false;
+    let currentQuote = "";
+
+    function renderQuote() {
+        currentQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        quoteDisplay.innerHTML = '';
+        currentQuote.split('').forEach(char => {
+            const charSpan = document.createElement('span');
+            charSpan.innerText = char;
+            quoteDisplay.appendChild(charSpan);
+        });
+        inputField.value = '';
+    }
+
+    inputField.addEventListener('input', () => {
+        if (!timerStarted) {
+            startTime = new Date();
+            timerStarted = true;
+        }
+
+        const arrayQuote = quoteDisplay.querySelectorAll('span');
+        const arrayValue = inputField.value.split('');
+        
+        let correctCount = 0;
+        let isAllCorrect = true;
+
+        arrayQuote.forEach((characterSpan, index) => {
+            const character = arrayValue[index];
+            if (character == null) {
+                characterSpan.className = '';
+                isAllCorrect = false;
+            } else if (character === characterSpan.innerText) {
+                characterSpan.className = 'correct';
+                correctCount++;
+            } else {
+                characterSpan.className = 'incorrect';
+                isAllCorrect = false;
+            }
+        });
+
+        // 背景變色邏輯
+        if (inputField.value === '') {
+            inputField.className = '';
+        } else if (isAllCorrect) {
+            inputField.className = 'bg-success';
+        } else {
+            inputField.className = 'bg-error';
+        }
+
+        // 計算 WPM & 正確率
+        const timeElapsed = (new Date() - startTime) / 60000; // 分鐘
+        const wpm = Math.round((arrayValue.length / 5) / timeElapsed) || 0;
+        const accuracy = Math.round((correctCount / arrayValue.length) * 100) || 100;
+
+        wpmDisplay.innerText = wpm;
+        accDisplay.innerText = accuracy + '%';
+
+        // 結束後自動下一題
+        if (inputField.value === currentQuote) {
+            setTimeout(resetGame, 500);
+        }
+    });
+
+    function resetGame() {
+        renderQuote();
+        timerStarted = false;
+        wpmDisplay.innerText = '0';
+        accDisplay.innerText = '100%';
+        inputField.className = '';
+    }
+
+    renderQuote();
+</script>
+
+</body>
+</html>
